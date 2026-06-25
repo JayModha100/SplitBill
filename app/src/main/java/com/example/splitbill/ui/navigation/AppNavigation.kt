@@ -14,7 +14,10 @@ fun AppNavigation() {
     val auth = FirebaseAuth.getInstance()
     
     // Determine the start destination based on whether a user is logged in
-    val startDestination = if (auth.currentUser != null) "home" else "login"
+    // val startDestination = if (auth.currentUser != null) "home" else "login"
+    
+    // TEMPORARY: Bypass auth for development
+    val startDestination = "home"
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
