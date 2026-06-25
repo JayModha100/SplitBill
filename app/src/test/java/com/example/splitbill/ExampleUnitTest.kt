@@ -1,4 +1,4 @@
-package com.example.splitwiselocal
+package com.example.splitbill
 
 import org.junit.Test
 

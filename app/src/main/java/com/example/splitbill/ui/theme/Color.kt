@@ -1,4 +1,4 @@
-package com.example.splitwiselocal.ui.theme
+package com.example.splitbill.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

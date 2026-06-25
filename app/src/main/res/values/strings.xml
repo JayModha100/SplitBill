@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">Splitwise Local</string>
+    <string name="app_name">SplitBill</string>
+    <!-- TODO: Replace with your actual Web Client ID from Firebase Console / Google Cloud Console -->
+    <string name="default_web_client_id">978463099656-13cefm8cigftosrlvcscast6gmp6arrc.apps.googleusercontent.com</string>
 </resources>

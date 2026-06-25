@@ -22,6 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Splitwise Local"
+rootProject.name = "SplitBill"
 include(":app")
- 
