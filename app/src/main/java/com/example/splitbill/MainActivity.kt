@@ -18,9 +18,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             SplitBillTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    // To handle innerPadding, you could wrap AppNavigation in a Box or pass it down,
-                    // but Scaffold handles edge-to-edge layout nicely.
-                    // Let's apply innerPadding to a container or just let AppNavigation handle it inside screens.
                     androidx.compose.foundation.layout.Box(modifier = Modifier.padding(innerPadding)) {
                         AppNavigation()
                     }
