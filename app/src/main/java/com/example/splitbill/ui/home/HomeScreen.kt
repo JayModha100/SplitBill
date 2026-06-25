@@ -34,7 +34,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onCreateGroup: () -> Unit = {},
+    onJoinGroup: () -> Unit = {}
 ) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
@@ -57,7 +59,7 @@ fun HomeScreen(
 
             Button(onClick =
                 {
-
+                    onCreateGroup()
                 }, shape = RoundedCornerShape(5.dp), modifier = Modifier.width(300.dp), colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF005EBD), contentColor = Color.White))
             {
@@ -65,7 +67,7 @@ fun HomeScreen(
             }
             Spacer(Modifier.width(10.dp))
             Button(onClick = {
-
+                onJoinGroup()
             }, shape = RoundedCornerShape(5.dp), modifier = Modifier.width(300.dp),colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF005EBD), contentColor = Color.White)) {
                 Text("Join an existing group")

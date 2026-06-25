@@ -1,6 +1,7 @@
 package com.example.splitbill.data.repository
 
 import com.example.splitbill.data.model.Group
+import com.example.splitbill.data.model.JoinGroupResult
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -18,9 +19,9 @@ class GroupRepository {
     suspend fun createGroup(groupName: String, currentUserId: String): Result<Group> {
         return try {
             val joinCode = generateJoinCode()
-            
+
             val newGroup = Group(
-                groupId = "", 
+                groupId = "",
                 groupName = groupName,
                 joinCode = joinCode,
                 createdBy = currentUserId,
@@ -38,28 +39,48 @@ class GroupRepository {
         }
     }
 
-    suspend fun joinGroup(joinCode: String, currentUserId: String): Result<Group> {
+    suspend fun joinGroup(joinCode: String, currentUserId: String): Result<JoinGroupResult> {
         return try {
+            val normalizedCode = joinCode.trim().uppercase()
+
+            if (normalizedCode.length != 6) {
+                return Result.failure(Exception("Join code must be exactly 6 characters."))
+            }
+
             val querySnapshot = groupsCollection
-                .whereEqualTo("joinCode", joinCode)
+                .whereEqualTo("joinCode", normalizedCode)
                 .limit(1)
                 .get()
                 .await()
 
             if (querySnapshot.isEmpty) {
-                return Result.failure(Exception("Group not found with the provided join code."))
+                return Result.failure(Exception("No group found with code \"$normalizedCode\"."))
             }
 
             val document = querySnapshot.documents.first()
-            val group = document.toObject(Group::class.java) 
+            val group = document.toObject(Group::class.java)
                 ?: return Result.failure(Exception("Failed to parse group data."))
 
+            if (group.members.contains(currentUserId)) {
+                return Result.success(
+                    JoinGroupResult(
+                        groupId = group.groupId,
+                        groupName = group.groupName,
+                        alreadyMember = true
+                    )
+                )
+            }
+
+            // arrayUnion is idempotent but we skip the write entirely if already a member
             document.reference.update("members", FieldValue.arrayUnion(currentUserId)).await()
 
-            val updatedMembers = if (!group.members.contains(currentUserId)) group.members + currentUserId else group.members
-            val updatedGroup = group.copy(members = updatedMembers)
-            
-            Result.success(updatedGroup)
+            Result.success(
+                JoinGroupResult(
+                    groupId = group.groupId,
+                    groupName = group.groupName,
+                    alreadyMember = false
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -79,3 +100,4 @@ class GroupRepository {
         }
     }
 }
+
