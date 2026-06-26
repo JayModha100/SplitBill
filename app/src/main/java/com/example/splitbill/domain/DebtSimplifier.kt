@@ -8,7 +8,7 @@ import kotlin.math.min
 import kotlin.math.round
 
 object DebtSimplifier {
-    fun computeBalances(members: List<Member>, expenses: List<Expense>): Map<String, Double> {
+    fun computeBalances(members: List<Member>, expenses: List<Expense>, settlements: List<Settlement>): Map<String, Double> {
         val balances = mutableMapOf<String, Double>()
         members.forEach { balances[it.id] = 0.0 }
 
@@ -18,7 +18,17 @@ object DebtSimplifier {
                 balances[memberId] = (balances[memberId] ?: 0.0) - portion
             }
         }
+
+        settlements.forEach { settlement ->
+            balances[settlement.fromMemberId] = (balances[settlement.fromMemberId] ?: 0.0) + settlement.amount
+            balances[settlement.toMemberId] = (balances[settlement.toMemberId] ?: 0.0) - settlement.amount
+        }
+
         return balances
+    }
+
+    fun computeBalances(members: List<Member>, expenses: List<Expense>): Map<String, Double> {
+        return computeBalances(members, expenses, emptyList())
     }
 
     fun simplifyFromBalances(balances: Map<String, Double>): List<Settlement> {

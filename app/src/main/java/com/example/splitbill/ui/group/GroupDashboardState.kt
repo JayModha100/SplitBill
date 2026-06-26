@@ -32,6 +32,7 @@ class GroupDashboardState(
 
     val members = mutableStateListOf<Member>()
     val expenses = mutableStateListOf<Expense>()
+    val settlements = mutableStateListOf<Settlement>()
     val activity = mutableStateListOf<ActivityEvent>()
 
     fun memberName(id: String): String {
@@ -39,7 +40,7 @@ class GroupDashboardState(
     }
 
     fun balances(): Map<String, Double> {
-        return DebtSimplifier.computeBalances(members, expenses)
+        return DebtSimplifier.computeBalances(members, expenses, settlements)
     }
 
     fun addExpense(expense: Expense) {
@@ -87,14 +88,25 @@ class GroupDashboardState(
     }
 
     fun recordSettlement(settlement: Settlement) {
-        val fromName = memberName(settlement.fromMemberId)
-        val toName = memberName(settlement.toMemberId)
-        activity.add(
-            ActivityEvent(
-                kind = ActivityKind.SETTLEMENT,
-                message = "$fromName settled ₹${settlement.amount} with $toName."
-            )
-        )
+        CoroutineScope(Dispatchers.IO).launch {
+            val settlementToSave = settlement.copy(groupId = currentGroupId, confirmed = true)
+            val result = expenseRepository.addSettlement(settlementToSave)
+            result.onSuccess { savedSettlement ->
+                withContext(Dispatchers.Main) {
+                    settlements.add(savedSettlement)
+                    val fromName = memberName(savedSettlement.fromMemberId)
+                    val toName = memberName(savedSettlement.toMemberId)
+                    activity.add(
+                        ActivityEvent(
+                            kind = ActivityKind.SETTLEMENT,
+                            message = "$fromName settled ₹${savedSettlement.amount} with $toName."
+                        )
+                    )
+                }
+            }.onFailure { e ->
+                e.printStackTrace()
+            }
+        }
     }
 
     fun requestPayment(fromMemberId: String, toMemberId: String, amount: Double) {
@@ -114,6 +126,7 @@ class GroupDashboardState(
         CoroutineScope(Dispatchers.IO).launch {
             val result = com.example.splitbill.data.repository.GroupRepository().getGroup(groupId)
             val expensesResult = expenseRepository.getExpenses(groupId)
+            val settlementsResult = expenseRepository.getSettlements(groupId)
             
             result.onSuccess { group ->
                 val profilesResult = com.example.splitbill.data.repository.UserRepository().getProfiles(group.members)
@@ -141,6 +154,10 @@ class GroupDashboardState(
                 expensesResult.onSuccess { loadedExpenses ->
                     expenses.clear()
                     expenses.addAll(loadedExpenses)
+                }
+                settlementsResult.onSuccess { loadedSettlements ->
+                    settlements.clear()
+                    settlements.addAll(loadedSettlements)
                 }
             }
         }
