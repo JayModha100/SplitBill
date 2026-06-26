@@ -18,7 +18,8 @@ import com.google.firebase.auth.FirebaseAuth
 fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
-    val groupDashboardState = rememberGroupDashboardState()
+    val uid = com.example.splitbill.util.CurrentUser.uid()
+    val groupDashboardState = rememberGroupDashboardState(currentUserId = uid ?: "")
 
     val startDestination = if (auth.currentUser != null) "home" else "login"
 

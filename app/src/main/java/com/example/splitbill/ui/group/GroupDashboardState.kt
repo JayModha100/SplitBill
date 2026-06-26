@@ -69,6 +69,23 @@ class GroupDashboardState(
         }
     }
 
+    private fun seedExpenseLocally(expense: Expense) {
+        expenses.add(expense)
+        val payerName = memberName(expense.paidBy)
+        activity.add(
+            ActivityEvent(
+                kind = ActivityKind.EXPENSE,
+                message = "$payerName paid ₹${expense.amount} for ${expense.description}."
+            )
+        )
+        activity.add(
+            ActivityEvent(
+                kind = ActivityKind.SPLIT,
+                message = "Expense split ${expense.splitType.label} among ${expense.shares.size} members."
+            )
+        )
+    }
+
     fun recordSettlement(settlement: Settlement) {
         val fromName = memberName(settlement.fromMemberId)
         val toName = memberName(settlement.toMemberId)
@@ -163,8 +180,8 @@ class GroupDashboardState(
                 )
             )
 
-            // Seed an expense
-            state.addExpense(
+            // Seed an expense locally for preview without triggering Firestore
+            state.seedExpenseLocally(
                 Expense(
                     description = "Lunch",
                     category = "Food",
@@ -186,4 +203,12 @@ class GroupDashboardState(
 }
 
 @Composable
-fun rememberGroupDashboardState(): GroupDashboardState = remember { GroupDashboardState.demo() }
+fun rememberGroupDashboardState(currentUserId: String = ""): GroupDashboardState {
+    return remember(currentUserId) {
+        if (currentUserId.isNotBlank()) {
+            GroupDashboardState(currentUserId = currentUserId)
+        } else {
+            GroupDashboardState.demo()
+        }
+    }
+}
