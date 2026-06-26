@@ -1,90 +1,85 @@
 package com.example.splitbill.domain
 
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 object SplitCalculator {
 
-    private fun roundToTwoDecimals(value: Double): Double {
-        return (value * 100.0).roundToInt() / 100.0
-    }
-
-    fun equal(amount: Double, memberIds: List<String>): Map<String, Double> {
+    fun equal(amountPaise: Long, memberIds: List<String>): Map<String, Long> {
         if (memberIds.isEmpty()) return emptyMap()
-        if (amount < 0.0) throw IllegalArgumentException("Amount must not be negative.")
+        if (amountPaise < 0L) throw IllegalArgumentException("Amount must not be negative.")
 
-        val share = roundToTwoDecimals(amount / memberIds.size)
-        val result = mutableMapOf<String, Double>()
+        val share = amountPaise / memberIds.size
+        val result = mutableMapOf<String, Long>()
         
         for (id in memberIds) {
             result[id] = share
         }
 
         val totalWithoutAdjust = share * memberIds.size
-        val remainder = roundToTwoDecimals(amount - totalWithoutAdjust)
+        val remainder = amountPaise - totalWithoutAdjust
         
-        if (remainder != 0.0) {
+        if (remainder != 0L) {
             val firstMember = memberIds.first()
-            result[firstMember] = roundToTwoDecimals(result[firstMember]!! + remainder)
+            result[firstMember] = result[firstMember]!! + remainder
         }
 
         return result
     }
 
-    fun exact(amount: Double, exactAmounts: Map<String, Double>): Map<String, Double> {
-        val sum = exactAmounts.values.sum()
-        if (abs(sum - amount) > 0.01) {
-            throw IllegalArgumentException("Exact amounts must sum to the total amount (expected $amount, got $sum).")
+    fun exact(amountPaise: Long, exactAmountsPaise: Map<String, Long>): Map<String, Long> {
+        val sum = exactAmountsPaise.values.sum()
+        if (sum != amountPaise) {
+            throw IllegalArgumentException("Exact amounts must sum to the total amount (expected $amountPaise, got $sum).")
         }
-        return exactAmounts
+        return exactAmountsPaise
     }
 
-    fun percentage(amount: Double, percents: Map<String, Double>): Map<String, Double> {
+    fun percentage(amountPaise: Long, percents: Map<String, Double>): Map<String, Long> {
         val sumPercents = percents.values.sum()
         if (abs(sumPercents - 100.0) > 0.01) {
             throw IllegalArgumentException("Percentages must sum to 100 (got $sumPercents).")
         }
 
-        val result = mutableMapOf<String, Double>()
-        var sum = 0.0
+        val result = mutableMapOf<String, Long>()
+        var sum = 0L
 
         for ((id, percent) in percents) {
-            val share = roundToTwoDecimals((amount * percent) / 100.0)
+            val share = ((amountPaise * percent) / 100.0).toLong()
             result[id] = share
             sum += share
         }
 
         if (result.isNotEmpty()) {
-            val remainder = roundToTwoDecimals(amount - sum)
-            if (remainder != 0.0) {
+            val remainder = amountPaise - sum
+            if (remainder != 0L) {
                 val firstMember = percents.keys.first()
-                result[firstMember] = roundToTwoDecimals(result[firstMember]!! + remainder)
+                result[firstMember] = result[firstMember]!! + remainder
             }
         }
 
         return result
     }
 
-    fun shares(amount: Double, weights: Map<String, Int>): Map<String, Double> {
+    fun shares(amountPaise: Long, weights: Map<String, Int>): Map<String, Long> {
         val totalWeight = weights.values.sum()
         if (totalWeight <= 0) {
             throw IllegalArgumentException("Total share weights must be greater than zero.")
         }
 
-        val result = mutableMapOf<String, Double>()
-        var sum = 0.0
+        val result = mutableMapOf<String, Long>()
+        var sum = 0L
 
         for ((id, weight) in weights) {
-            val share = roundToTwoDecimals((amount * weight.toDouble()) / totalWeight)
+            val share = ((amountPaise * weight.toDouble()) / totalWeight).toLong()
             result[id] = share
             sum += share
         }
 
         if (result.isNotEmpty()) {
-            val remainder = roundToTwoDecimals(amount - sum)
-            if (remainder != 0.0) {
+            val remainder = amountPaise - sum
+            if (remainder != 0L) {
                 val firstMember = weights.keys.first()
-                result[firstMember] = roundToTwoDecimals(result[firstMember]!! + remainder)
+                result[firstMember] = result[firstMember]!! + remainder
             }
         }
 

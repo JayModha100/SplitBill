@@ -85,7 +85,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                 val toName = toMember?.name ?: "Unknown"
                                 
                                 Text(
-                                    text = "You should pay:\n$toName — ₹${settlement.amount}",
+                                    text = "You should pay:\n$toName — ${com.example.splitbill.domain.Money.formatPaise(settlement.amountPaise)}",
                                     color = RetroTheme.colors.textDark,
                                     fontSize = 16.sp
                                 )
@@ -99,7 +99,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                                 context = context,
                                                 payeeVpa = vpa,
                                                 payeeName = toName,
-                                                amount = settlement.amount,
+                                                amount = com.example.splitbill.domain.Money.toRupees(settlement.amountPaise),
                                                 note = "SplitBill ${state.groupName}"
                                             )
                                             activePayment = settlement
@@ -116,7 +116,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                 val fromName = state.memberName(settlement.fromMemberId)
                                 
                                 Text(
-                                    text = "$fromName owes you ₹${settlement.amount}",
+                                    text = "$fromName owes you ${com.example.splitbill.domain.Money.formatPaise(settlement.amountPaise)}",
                                     color = RetroTheme.colors.textDark,
                                     fontSize = 16.sp
                                 )
@@ -124,7 +124,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                 RetroButton(
                                     text = "Notify",
                                     onClick = {
-                                        state.requestPayment(settlement.fromMemberId, settlement.toMemberId, settlement.amount)
+                                        state.requestPayment(settlement.fromMemberId, settlement.toMemberId, settlement.amountPaise)
                                         Toast.makeText(context, "Notification sent to $fromName", Toast.LENGTH_SHORT).show()
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -159,7 +159,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                 RetroTheme {
                     RetroPanel(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Did the payment to $toName of ₹${payment.amount} succeed?",
+                            text = "Did the payment to $toName of ${com.example.splitbill.domain.Money.formatPaise(payment.amountPaise)} succeed?",
                             color = RetroTheme.colors.textDark,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -178,7 +178,7 @@ fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                         Settlement(
                                             fromMemberId = state.currentUserId,
                                             toMemberId = payment.toMemberId,
-                                            amount = payment.amount
+                                            amountPaise = payment.amountPaise
                                         )
                                     )
                                     activePayment = null

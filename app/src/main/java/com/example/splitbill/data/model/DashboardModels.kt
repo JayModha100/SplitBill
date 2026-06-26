@@ -22,10 +22,10 @@ data class Expense(
     val groupId: String = "",
     val description: String = "",
     val category: String = "",
-    val amount: Double = 0.0,
+    val amountPaise: Long = 0L,
     val paidBy: String = "",
     val splitType: SplitType = SplitType.EQUAL,
-    val shares: Map<String, Double> = emptyMap(),
+    val sharesPaise: Map<String, Long> = emptyMap(),
     val notes: String = "",
     val timestampMillis: Long = 0L
 )
@@ -44,7 +44,7 @@ data class ActivityEvent(
 data class Settlement(
     val fromMemberId: String = "",
     val toMemberId: String = "",
-    val amount: Double = 0.0,
+    val amountPaise: Long = 0L,
     val id: String = UUID.randomUUID().toString(),
     val groupId: String = "",
     val confirmed: Boolean = false,

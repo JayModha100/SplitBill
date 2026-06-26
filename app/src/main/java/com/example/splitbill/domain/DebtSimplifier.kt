@@ -5,54 +5,52 @@ import com.example.splitbill.data.model.Member
 import com.example.splitbill.data.model.Settlement
 import kotlin.math.abs
 import kotlin.math.min
-import kotlin.math.round
 
 object DebtSimplifier {
-    fun computeBalances(members: List<Member>, expenses: List<Expense>, settlements: List<Settlement>): Map<String, Double> {
-        val balances = mutableMapOf<String, Double>()
-        members.forEach { balances[it.id] = 0.0 }
+    fun computeBalances(members: List<Member>, expenses: List<Expense>, settlements: List<Settlement>): Map<String, Long> {
+        val balances = mutableMapOf<String, Long>()
+        members.forEach { balances[it.id] = 0L }
 
         expenses.forEach { expense ->
-            balances[expense.paidBy] = (balances[expense.paidBy] ?: 0.0) + expense.amount
-            expense.shares.forEach { (memberId, portion) ->
-                balances[memberId] = (balances[memberId] ?: 0.0) - portion
+            balances[expense.paidBy] = (balances[expense.paidBy] ?: 0L) + expense.amountPaise
+            expense.sharesPaise.forEach { (memberId, portion) ->
+                balances[memberId] = (balances[memberId] ?: 0L) - portion
             }
         }
 
         settlements.forEach { settlement ->
-            balances[settlement.fromMemberId] = (balances[settlement.fromMemberId] ?: 0.0) + settlement.amount
-            balances[settlement.toMemberId] = (balances[settlement.toMemberId] ?: 0.0) - settlement.amount
+            balances[settlement.fromMemberId] = (balances[settlement.fromMemberId] ?: 0L) + settlement.amountPaise
+            balances[settlement.toMemberId] = (balances[settlement.toMemberId] ?: 0L) - settlement.amountPaise
         }
 
         return balances
     }
 
-    fun computeBalances(members: List<Member>, expenses: List<Expense>): Map<String, Double> {
+    fun computeBalances(members: List<Member>, expenses: List<Expense>): Map<String, Long> {
         return computeBalances(members, expenses, emptyList())
     }
 
-    fun simplifyFromBalances(balances: Map<String, Double>): List<Settlement> {
+    fun simplifyFromBalances(balances: Map<String, Long>): List<Settlement> {
         val settlements = mutableListOf<Settlement>()
         
-        val debtors = balances.filterValues { it < -0.01 }.mapValues { abs(it.value) }.toMutableMap()
-        val creditors = balances.filterValues { it > 0.01 }.toMutableMap()
+        val debtors = balances.filterValues { it < 0L }.mapValues { abs(it.value) }.toMutableMap()
+        val creditors = balances.filterValues { it > 0L }.toMutableMap()
 
         while (debtors.isNotEmpty() && creditors.isNotEmpty()) {
             val debtor = debtors.maxByOrNull { it.value }!!
             val creditor = creditors.maxByOrNull { it.value }!!
 
-            val minAmount = min(debtor.value, creditor.value)
-            val roundedAmount = round(minAmount * 100) / 100.0
+            val minAmountPaise = min(debtor.value, creditor.value)
 
-            if (roundedAmount > 0.0) {
-                settlements.add(Settlement(debtor.key, creditor.key, roundedAmount))
+            if (minAmountPaise > 0L) {
+                settlements.add(Settlement(debtor.key, creditor.key, minAmountPaise))
             }
 
-            debtors[debtor.key] = debtor.value - minAmount
-            creditors[creditor.key] = creditor.value - minAmount
+            debtors[debtor.key] = debtor.value - minAmountPaise
+            creditors[creditor.key] = creditor.value - minAmountPaise
 
-            if (debtors[debtor.key]!! < 0.01) debtors.remove(debtor.key)
-            if (creditors[creditor.key]!! < 0.01) creditors.remove(creditor.key)
+            if (debtors[debtor.key]!! == 0L) debtors.remove(debtor.key)
+            if (creditors[creditor.key]!! == 0L) creditors.remove(creditor.key)
         }
 
         return settlements
@@ -63,7 +61,7 @@ object DebtSimplifier {
         return simplifyFromBalances(balances)
     }
 
-    fun Map<String, Double>.isSettled(epsilon: Double = 0.01): Boolean {
-        return this.values.all { abs(it) < epsilon }
+    fun Map<String, Long>.isSettled(): Boolean {
+        return this.values.all { it == 0L }
     }
 }

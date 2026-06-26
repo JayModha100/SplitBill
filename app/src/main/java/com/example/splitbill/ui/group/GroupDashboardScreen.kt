@@ -66,7 +66,7 @@ fun GroupDashboardScreen(
             Text("Members", fontWeight = FontWeight.Bold, color = RetroTheme.colors.textDark, fontSize = 18.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(state.members) { member ->
-                    MemberAvatar(member, balances[member.id] ?: 0.0)
+                    MemberAvatar(member, balances[member.id] ?: 0L)
                 }
             }
 
@@ -109,7 +109,7 @@ fun GroupDashboardScreen(
 }
 
 @Composable
-fun MemberAvatar(member: Member, balance: Double) {
+fun MemberAvatar(member: Member, balancePaise: Long) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
             modifier = Modifier
@@ -132,12 +132,16 @@ fun MemberAvatar(member: Member, balance: Double) {
             color = RetroTheme.colors.textDark,
             maxLines = 1
         )
-        val balanceText = if (balance > 0) "+₹${String.format(Locale.US, "%.2f", balance)}" 
-                          else if (balance < 0) "-₹${String.format(Locale.US, "%.2f", -balance)}" 
+        val balanceText = if (balancePaise > 0L) "+${com.example.splitbill.domain.Money.formatPaise(balancePaise).removePrefix("₹")}₹" 
+                          else if (balancePaise < 0L) "-${com.example.splitbill.domain.Money.formatPaise(-balancePaise)}" 
                           else "₹0.00"
-        val balanceColor = if (balance > 0) RetroTheme.colors.green else if (balance < 0) RetroTheme.colors.red else RetroTheme.colors.textDark
+        // Wait formatPaise returns "₹12.34".
+        // If I want "+₹12.34", it's better to do:
+        val formatted = com.example.splitbill.domain.Money.formatPaise(if (balancePaise < 0L) -balancePaise else balancePaise)
+        val finalBalanceText = if (balancePaise > 0L) "+$formatted" else if (balancePaise < 0L) "-$formatted" else "₹0.00"
+        val balanceColor = if (balancePaise > 0L) RetroTheme.colors.green else if (balancePaise < 0L) RetroTheme.colors.red else RetroTheme.colors.textDark
         Text(
-            text = balanceText,
+            text = finalBalanceText,
             fontSize = 12.sp,
             color = balanceColor,
             fontWeight = FontWeight.Bold
@@ -176,7 +180,7 @@ fun ExpenseRow(expense: Expense, payerName: String) {
             )
         }
         Text(
-            text = "₹${String.format(Locale.US, "%.2f", expense.amount)}",
+            text = com.example.splitbill.domain.Money.formatPaise(expense.amountPaise),
             fontWeight = FontWeight.Bold,
             color = RetroTheme.colors.red,
             fontSize = 16.sp

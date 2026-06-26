@@ -39,7 +39,7 @@ class GroupDashboardState(
         return members.find { it.id == id }?.name ?: "Unknown"
     }
 
-    fun balances(): Map<String, Double> {
+    fun balances(): Map<String, Long> {
         return DebtSimplifier.computeBalances(members, expenses, settlements)
     }
 
@@ -54,13 +54,13 @@ class GroupDashboardState(
                     activity.add(
                         ActivityEvent(
                             kind = ActivityKind.EXPENSE,
-                            message = "$payerName paid ₹${savedExpense.amount} for ${savedExpense.description}."
+                            message = "$payerName paid ${com.example.splitbill.domain.Money.formatPaise(savedExpense.amountPaise)} for ${savedExpense.description}."
                         )
                     )
                     activity.add(
                         ActivityEvent(
                             kind = ActivityKind.SPLIT,
-                            message = "Expense split ${savedExpense.splitType.label} among ${savedExpense.shares.size} members."
+                            message = "Expense split ${savedExpense.splitType.label} among ${savedExpense.sharesPaise.size} members."
                         )
                     )
                 }
@@ -76,13 +76,13 @@ class GroupDashboardState(
         activity.add(
             ActivityEvent(
                 kind = ActivityKind.EXPENSE,
-                message = "$payerName paid ₹${expense.amount} for ${expense.description}."
+                message = "$payerName paid ${com.example.splitbill.domain.Money.formatPaise(expense.amountPaise)} for ${expense.description}."
             )
         )
         activity.add(
             ActivityEvent(
                 kind = ActivityKind.SPLIT,
-                message = "Expense split ${expense.splitType.label} among ${expense.shares.size} members."
+                message = "Expense split ${expense.splitType.label} among ${expense.sharesPaise.size} members."
             )
         )
     }
@@ -99,7 +99,7 @@ class GroupDashboardState(
                     activity.add(
                         ActivityEvent(
                             kind = ActivityKind.SETTLEMENT,
-                            message = "$fromName settled ₹${savedSettlement.amount} with $toName."
+                            message = "$fromName settled ${com.example.splitbill.domain.Money.formatPaise(savedSettlement.amountPaise)} with $toName."
                         )
                     )
                 }
@@ -109,14 +109,14 @@ class GroupDashboardState(
         }
     }
 
-    fun requestPayment(fromMemberId: String, toMemberId: String, amount: Double) {
+    fun requestPayment(fromMemberId: String, toMemberId: String, amountPaise: Long) {
         // requester is toMember (the one owed)
         val fromName = memberName(fromMemberId)
         val toName = memberName(toMemberId)
         activity.add(
             ActivityEvent(
                 kind = ActivityKind.REQUEST,
-                message = "$toName requested ₹$amount from $fromName."
+                message = "$toName requested ${com.example.splitbill.domain.Money.formatPaise(amountPaise)} from $fromName."
             )
         )
     }
@@ -202,14 +202,14 @@ class GroupDashboardState(
                 Expense(
                     description = "Lunch",
                     category = "Food",
-                    amount = 750.0,
+                    amountPaise = 75000L,
                     paidBy = jayId,
                     splitType = SplitType.EQUAL,
-                    shares = mapOf(
-                        jayId to 187.5,
-                        aryanId to 187.5,
-                        neelId to 187.5,
-                        riyaId to 187.5
+                    sharesPaise = mapOf(
+                        jayId to 18750L,
+                        aryanId to 18750L,
+                        neelId to 18750L,
+                        riyaId to 18750L
                     )
                 )
             )

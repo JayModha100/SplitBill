@@ -55,10 +55,11 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
         var percentages by remember { mutableStateOf(mapOf<String, String>()) }
         var shareWeights by remember { mutableStateOf(mapOf<String, String>()) }
 
-        val amount = amountText.toDoubleOrNull() ?: 0.0
+        val amountDouble = amountText.toDoubleOrNull() ?: 0.0
+        val amountPaise = com.example.splitbill.domain.Money.toPaise(amountDouble)
         val percentTotal = percentages.values.sumOf { it.toDoubleOrNull() ?: 0.0 }
         
-        val isValid = amount > 0 && paidById != null && (
+        val isValid = amountPaise > 0L && paidById != null && (
             selectedSplitType != SplitType.PERCENTAGE || abs(percentTotal - 100.0) <= 0.01
         )
 
@@ -207,22 +208,22 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
                     onClick = {
                         if (isValid) {
                             val activeMembers = state.members
-                            val shares: Map<String, Double>
+                            val sharesPaise: Map<String, Long>
                             
                             try {
-                                shares = when (selectedSplitType) {
-                                    SplitType.EQUAL -> SplitCalculator.equal(amount, activeMembers.map { it.id })
+                                sharesPaise = when (selectedSplitType) {
+                                    SplitType.EQUAL -> SplitCalculator.equal(amountPaise, activeMembers.map { it.id })
                                     SplitType.EXACT -> {
-                                        val amountsMap = exactAmounts.mapValues { it.value.toDoubleOrNull() ?: 0.0 }
-                                        SplitCalculator.exact(amount, amountsMap)
+                                        val amountsMap = exactAmounts.mapValues { com.example.splitbill.domain.Money.toPaise(it.value.toDoubleOrNull() ?: 0.0) }
+                                        SplitCalculator.exact(amountPaise, amountsMap)
                                     }
                                     SplitType.PERCENTAGE -> {
                                         val percentMap = percentages.mapValues { it.value.toDoubleOrNull() ?: 0.0 }
-                                        SplitCalculator.percentage(amount, percentMap)
+                                        SplitCalculator.percentage(amountPaise, percentMap)
                                     }
                                     SplitType.SHARES -> {
                                         val sharesMap = shareWeights.mapValues { it.value.toIntOrNull() ?: 0 }
-                                        SplitCalculator.shares(amount, sharesMap)
+                                        SplitCalculator.shares(amountPaise, sharesMap)
                                     }
                                 }
                             } catch (e: IllegalArgumentException) {
@@ -233,10 +234,10 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
                             val expense = Expense(
                                 description = description.ifBlank { "Expense" },
                                 category = category.ifBlank { "General" },
-                                amount = amount,
+                                amountPaise = amountPaise,
                                 paidBy = paidById!!,
                                 splitType = selectedSplitType,
-                                shares = shares
+                                sharesPaise = sharesPaise
                             )
                             state.addExpense(expense)
                             onDone()
