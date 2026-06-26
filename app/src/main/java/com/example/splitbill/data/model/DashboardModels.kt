@@ -19,14 +19,15 @@ enum class SplitType(val label: String) {
 
 data class Expense(
     val id: String = UUID.randomUUID().toString(),
-    val description: String,
-    val category: String,
-    val amount: Double,
-    val paidBy: String,
-    val splitType: SplitType,
-    val shares: Map<String, Double>,
+    val groupId: String = "",
+    val description: String = "",
+    val category: String = "",
+    val amount: Double = 0.0,
+    val paidBy: String = "",
+    val splitType: SplitType = SplitType.EQUAL,
+    val shares: Map<String, Double> = emptyMap(),
     val notes: String = "",
-    val timestampMillis: Long = System.currentTimeMillis()
+    val timestampMillis: Long = 0L
 )
 
 enum class ActivityKind {
@@ -41,7 +42,11 @@ data class ActivityEvent(
 )
 
 data class Settlement(
-    val fromMemberId: String,
-    val toMemberId: String,
-    val amount: Double
+    val fromMemberId: String = "",
+    val toMemberId: String = "",
+    val amount: Double = 0.0,
+    val id: String = UUID.randomUUID().toString(),
+    val groupId: String = "",
+    val confirmed: Boolean = false,
+    val timestampMillis: Long = 0L
 )
