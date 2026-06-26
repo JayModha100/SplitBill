@@ -41,7 +41,7 @@ import kotlin.math.abs
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
+fun PayScreen(state: GroupDashboardViewModel, onDone: () -> Unit) {
     val context = LocalContext.current
 
     RetroTheme {
@@ -50,6 +50,8 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
         var description by remember { mutableStateOf("") }
         var paidById by remember { mutableStateOf<String?>(state.currentUserId.takeIf { it.isNotBlank() }) }
         var selectedSplitType by remember { mutableStateOf(SplitType.EQUAL) }
+        var selectedRecurrence by remember { mutableStateOf("NONE") }
+        val recurrences = listOf("NONE", "DAILY", "WEEKLY", "MONTHLY")
 
         var exactAmounts by remember { mutableStateOf(mapOf<String, String>()) }
         var percentages by remember { mutableStateOf(mapOf<String, String>()) }
@@ -101,6 +103,24 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
                     onValueChange = { category = it },
                     label = "Category (e.g. Food)"
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Recurrence:", color = RetroTheme.colors.textDark, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    recurrences.forEach { rec ->
+                        if (selectedRecurrence == rec) {
+                            RetroButton(text = rec, onClick = { selectedRecurrence = rec })
+                        } else {
+                            RetroSecondaryButton(text = rec, onClick = { selectedRecurrence = rec })
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -231,13 +251,26 @@ fun PayScreen(state: GroupDashboardState, onDone: () -> Unit) {
                                 return@RetroButton
                             }
 
+                            val nextRunMillis = if (selectedRecurrence != "NONE") {
+                                val now = System.currentTimeMillis()
+                                val oneDayMillis = 24L * 60 * 60 * 1000
+                                when (selectedRecurrence) {
+                                    "DAILY" -> now + oneDayMillis
+                                    "WEEKLY" -> now + 7L * oneDayMillis
+                                    "MONTHLY" -> now + 30L * oneDayMillis
+                                    else -> 0L
+                                }
+                            } else 0L
+
                             val expense = Expense(
                                 description = description.ifBlank { "Expense" },
                                 category = category.ifBlank { "General" },
                                 amountPaise = amountPaise,
                                 paidBy = paidById!!,
                                 splitType = selectedSplitType,
-                                sharesPaise = sharesPaise
+                                sharesPaise = sharesPaise,
+                                recurrence = selectedRecurrence,
+                                nextRunMillis = nextRunMillis
                             )
                             state.addExpense(expense)
                             onDone()

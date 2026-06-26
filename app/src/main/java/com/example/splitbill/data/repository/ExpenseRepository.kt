@@ -46,6 +46,35 @@ class ExpenseRepository {
         }
     }
 
+    suspend fun getDueRecurringExpenses(groupId: String, nowMillis: Long): Result<List<Expense>> {
+        return try {
+            val collectionRef = firestore.collection("groups").document(groupId).collection("expenses")
+            val snapshot = withTimeout(10000L) {
+                collectionRef.whereNotEqualTo("recurrence", "NONE").get().await()
+            }
+            val expenses = snapshot.toObjects(Expense::class.java).filter { it.nextRunMillis <= nowMillis }
+            Result.success(expenses)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateNextRun(expense: Expense, nextRunMillis: Long): Result<Unit> {
+        return try {
+            val documentRef = firestore.collection("groups").document(expense.groupId).collection("expenses").document(expense.id)
+            withTimeout(10000L) {
+                documentRef.update("nextRunMillis", nextRunMillis).await()
+            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun addSettlement(settlement: Settlement): Result<Settlement> {
         return try {
             val collectionRef = firestore.collection("groups").document(settlement.groupId).collection("settlements")

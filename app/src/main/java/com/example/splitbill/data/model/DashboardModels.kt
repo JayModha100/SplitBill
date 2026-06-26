@@ -27,7 +27,9 @@ data class Expense(
     val splitType: SplitType = SplitType.EQUAL,
     val sharesPaise: Map<String, Long> = emptyMap(),
     val notes: String = "",
-    val timestampMillis: Long = 0L
+    val timestampMillis: Long = 0L,
+    val recurrence: String = "NONE",
+    val nextRunMillis: Long = 0L
 )
 
 enum class ActivityKind {

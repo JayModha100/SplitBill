@@ -10,6 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,18 +27,43 @@ import com.example.splitbill.ui.components.*
 import com.example.splitbill.ui.theme.RetroTheme
 import java.util.Locale
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun GroupDashboardScreen(
     groupId: String,
-    state: GroupDashboardState,
+    viewModel: GroupDashboardViewModel,
     onPay: () -> Unit,
     onSettleUp: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
     LaunchedEffect(groupId) {
-        state.loadGroup(groupId)
+        viewModel.loadGroup(groupId)
     }
 
-    val balances = state.balances()
+    val balances = viewModel.balances()
+
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("All") }
+
+    val filteredExpenses = remember(viewModel.expenses.toList(), searchQuery, selectedCategory) {
+        val lowerSearch = searchQuery.lowercase()
+        viewModel.expenses.filter { expense ->
+            val matchesSearch = if (lowerSearch.isEmpty()) true else {
+                expense.description.lowercase().contains(lowerSearch) ||
+                expense.category.lowercase().contains(lowerSearch) ||
+                viewModel.memberName(expense.paidBy).lowercase().contains(lowerSearch)
+            }
+            val matchesCategory = if (selectedCategory == "All") true else {
+                expense.category == selectedCategory
+            }
+            matchesSearch && matchesCategory
+        }.sortedByDescending { it.timestampMillis }
+    }
+
+    val categories = remember(viewModel.expenses.toList()) {
+        listOf("All") + viewModel.expenses.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
+    }
 
     RetroTheme {
         Column(
@@ -44,7 +73,7 @@ fun GroupDashboardScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            RetroTitleBar(title = state.groupName)
+            RetroTitleBar(title = viewModel.groupName)
 
             RetroPanel(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -54,7 +83,7 @@ fun GroupDashboardScreen(
                 ) {
                     Text("Join Code:", color = RetroTheme.colors.textDark, fontWeight = FontWeight.Bold)
                     Text(
-                        text = state.inviteCode,
+                        text = viewModel.inviteCode,
                         color = Color.White,
                         modifier = Modifier
                             .background(RetroTheme.colors.xpBlue, RetroTheme.shapes.beveled)
@@ -65,25 +94,51 @@ fun GroupDashboardScreen(
 
             Text("Members", fontWeight = FontWeight.Bold, color = RetroTheme.colors.textDark, fontSize = 18.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(state.members) { member ->
+                items(viewModel.members) { member ->
                     MemberAvatar(member, balances[member.id] ?: 0L)
                 }
             }
 
             Text("Expense History", fontWeight = FontWeight.Bold, color = RetroTheme.colors.textDark, fontSize = 18.sp)
+            
+            RetroOutlineField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                label = "Search by description, category or name"
+            )
+
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                categories.forEach { category ->
+                    if (selectedCategory == category) {
+                        RetroButton(
+                            text = category,
+                            onClick = { selectedCategory = category }
+                        )
+                    } else {
+                        RetroSecondaryButton(
+                            text = category,
+                            onClick = { selectedCategory = category }
+                        )
+                    }
+                }
+            }
+
             RetroPanel(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                if (state.expenses.isEmpty()) {
+                if (filteredExpenses.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No expenses yet.", color = RetroTheme.colors.textDark.copy(alpha = 0.6f))
+                        Text("No expenses match.", color = RetroTheme.colors.textDark.copy(alpha = 0.6f))
                     }
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        val sortedExpenses = state.expenses.sortedByDescending { it.timestampMillis }
-                        items(sortedExpenses) { expense ->
-                            ExpenseRow(expense, state.memberName(expense.paidBy))
+                        items(filteredExpenses) { expense ->
+                            ExpenseRow(expense, viewModel.memberName(expense.paidBy))
                         }
                     }
                 }
@@ -101,6 +156,59 @@ fun GroupDashboardScreen(
                 RetroSecondaryButton(
                     text = "Settle Up",
                     onClick = onSettleUp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                RetroSecondaryButton(
+                    text = "Export CSV",
+                    onClick = {
+                        val uri = com.example.splitbill.util.CsvExporter.exportToCsv(
+                            context = context,
+                            groupName = viewModel.groupName,
+                            expenses = viewModel.expenses,
+                            getMemberName = { viewModel.memberName(it) }
+                        )
+                        if (uri != null) {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "text/csv"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share CSV"))
+                        } else {
+                            android.widget.Toast.makeText(context, "Failed to export CSV", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+
+                RetroSecondaryButton(
+                    text = "Export PDF",
+                    onClick = {
+                        val uri = com.example.splitbill.util.PdfExporter.exportToPdf(
+                            context = context,
+                            groupName = viewModel.groupName,
+                            members = viewModel.members,
+                            balances = balances,
+                            expenses = viewModel.expenses,
+                            getMemberName = { viewModel.memberName(it) }
+                        )
+                        if (uri != null) {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/pdf"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share PDF"))
+                        } else {
+                            android.widget.Toast.makeText(context, "Failed to export PDF", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }

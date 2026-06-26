@@ -10,8 +10,9 @@ import com.example.splitbill.ui.group.GroupDashboardScreen
 import com.example.splitbill.ui.group.JoinGroupScreen
 import com.example.splitbill.ui.group.PayScreen
 import com.example.splitbill.ui.group.SettleUpScreen
-import com.example.splitbill.ui.group.rememberGroupDashboardState
+import com.example.splitbill.ui.group.GroupDashboardViewModel
 import com.example.splitbill.ui.home.HomeScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
@@ -19,7 +20,9 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
     val uid = com.example.splitbill.util.CurrentUser.uid()
-    val groupDashboardState = rememberGroupDashboardState(currentUserId = uid ?: "")
+    val groupDashboardViewModel: GroupDashboardViewModel = viewModel {
+        GroupDashboardViewModel(currentUserId = uid ?: "")
+    }
 
     val startDestination = if (auth.currentUser != null) "home" else "login"
 
@@ -72,20 +75,20 @@ fun AppNavigation() {
             val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             GroupDashboardScreen(
                 groupId = groupId,
-                state = groupDashboardState,
+                viewModel = groupDashboardViewModel,
                 onPay = { navController.navigate("pay") },
                 onSettleUp = { navController.navigate("settle") }
             )
         }
         composable("pay") {
             PayScreen(
-                state = groupDashboardState,
+                state = groupDashboardViewModel,
                 onDone = { navController.popBackStack() }
             )
         }
         composable("settle") {
             SettleUpScreen(
-                state = groupDashboardState,
+                state = groupDashboardViewModel,
                 onDone = { navController.popBackStack() }
             )
         }

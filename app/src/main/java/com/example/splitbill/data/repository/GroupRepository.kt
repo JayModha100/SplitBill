@@ -128,5 +128,19 @@ class GroupRepository {
             Result.failure(e)
         }
     }
+
+    suspend fun getGroupsForUser(uid: String): Result<List<Group>> {
+        return try {
+            val snapshot = withTimeout(10000L) {
+                groupsCollection.whereArrayContains("members", uid).get().await()
+            }
+            val groups = snapshot.toObjects(Group::class.java)
+            Result.success(groups)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
 

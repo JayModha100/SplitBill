@@ -36,7 +36,7 @@ import com.example.splitbill.ui.theme.RetroTheme
 import com.example.splitbill.util.UpiLauncher
 
 @Composable
-fun SettleUpScreen(state: GroupDashboardState, onDone: () -> Unit) {
+fun SettleUpScreen(state: GroupDashboardViewModel, onDone: () -> Unit) {
     val context = LocalContext.current
     
     // Compute settlements directly from balances so confirmed ones drop off automatically
