@@ -14,6 +14,10 @@ import com.example.splitbill.data.model.Settlement
 import com.example.splitbill.data.model.SplitType
 import com.example.splitbill.domain.DebtSimplifier
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GroupDashboardState(
     groupName: String = "",

@@ -77,7 +77,7 @@ fun JoinGroupScreen(
                             Toast.makeText(context, "Enter a join code", Toast.LENGTH_SHORT).show()
                             return@RetroButton
                         }
-                        val uid = FirebaseAuth.getInstance().currentUser?.uid
+                        val uid = com.example.splitbill.util.CurrentUser.uid()
                         if (uid == null) {
                             Toast.makeText(context, "You need to sign in first", Toast.LENGTH_LONG).show()
                             return@RetroButton

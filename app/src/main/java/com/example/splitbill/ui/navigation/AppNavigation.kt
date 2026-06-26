@@ -20,9 +20,7 @@ fun AppNavigation() {
     val auth = FirebaseAuth.getInstance()
     val groupDashboardState = rememberGroupDashboardState()
 
-    // val startDestination = if (auth.currentUser != null) "home" else "login"
-    // TEMPORARY: Bypass auth for development
-    val startDestination = "home"
+    val startDestination = if (auth.currentUser != null) "home" else "login"
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
