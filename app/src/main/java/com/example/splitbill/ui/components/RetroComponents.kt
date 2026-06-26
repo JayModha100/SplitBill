@@ -46,7 +46,6 @@ fun RetroTitleBar(title: String, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            // Top corners via panel shape implies 10.dp rounded corners just on top
             .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
             .background(verticalGradient(RetroTheme.colors.xpBlue, RetroTheme.colors.xpBlueDark))
             .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -95,7 +94,7 @@ fun RetroButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
             .border(1.dp, RetroTheme.colors.silverDark, RetroTheme.shapes.beveled)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Handled manually by state
+                indication = null,
                 enabled = enabled,
                 onClick = onClick
             )
