@@ -19,12 +19,26 @@ class GroupRepository {
 
     suspend fun createGroup(groupName: String, currentUserId: String): Result<Group> {
         return try {
-            val joinCode = generateJoinCode()
+            var uniqueJoinCode: String? = null
+            for (i in 1..5) {
+                val code = generateJoinCode()
+                val snapshot = withTimeout(10000L) {
+                    groupsCollection.whereEqualTo("joinCode", code).limit(1).get().await()
+                }
+                if (snapshot.isEmpty) {
+                    uniqueJoinCode = code
+                    break
+                }
+            }
+
+            if (uniqueJoinCode == null) {
+                return Result.failure(Exception("Failed to generate a unique join code after multiple attempts. Please try again."))
+            }
 
             val newGroup = Group(
                 groupId = "",
                 groupName = groupName,
-                joinCode = joinCode,
+                joinCode = uniqueJoinCode,
                 createdBy = currentUserId,
                 members = listOf(currentUserId)
             )

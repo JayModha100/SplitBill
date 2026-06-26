@@ -52,7 +52,7 @@ fun AppNavigation() {
         composable("create_group") {
             CreateGroupScreen(
                 onGroupCreated = { groupId ->
-                    navController.navigate("dashboard") {
+                    navController.navigate("dashboard/$groupId") {
                         popUpTo("home") { inclusive = true }
                     }
                 },
@@ -62,15 +62,17 @@ fun AppNavigation() {
         composable("join_group") {
             JoinGroupScreen(
                 onGroupJoined = { groupId ->
-                    navController.navigate("dashboard") {
+                    navController.navigate("dashboard/$groupId") {
                         popUpTo("home") { inclusive = true }
                     }
                 },
                 onBack = { navController.popBackStack() }
             )
         }
-        composable("dashboard") {
+        composable("dashboard/{groupId}") { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
             GroupDashboardScreen(
+                groupId = groupId,
                 state = groupDashboardState,
                 onPay = { navController.navigate("pay") },
                 onSettleUp = { navController.navigate("settle") }

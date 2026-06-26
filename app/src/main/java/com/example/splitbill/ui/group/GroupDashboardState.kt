@@ -75,6 +75,23 @@ class GroupDashboardState(
         )
     }
 
+    fun loadGroup(groupId: String) {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val result = com.example.splitbill.data.repository.GroupRepository().getGroup(groupId)
+            result.onSuccess { group ->
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    groupName = group.groupName
+                    inviteCode = group.joinCode
+                    members.clear()
+                    group.members.forEach { memberId ->
+                        val name = if (memberId == currentUserId) "You" else "User ${memberId.take(4)}"
+                        members.add(Member(id = memberId, name = name))
+                    }
+                }
+            }
+        }
+    }
+
     companion object {
         fun demo(): GroupDashboardState {
             val jayId = UUID.randomUUID().toString()
