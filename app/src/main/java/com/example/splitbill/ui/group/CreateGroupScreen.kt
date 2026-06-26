@@ -1,5 +1,6 @@
 package com.example.splitbill.ui.group
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,6 @@ fun CreateGroupScreen(
 ) {
     val context = LocalContext.current
     val repo = remember { GroupRepository() }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     var groupName by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -93,32 +93,30 @@ fun CreateGroupScreen(
 
             Button(
                 onClick = {
-                    if (groupName.isBlank()) {
-                        Toast.makeText(context, "Enter a group name", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (currentUserId.isEmpty()) {
-                        Toast.makeText(context, "Not signed in", Toast.LENGTH_SHORT).show()
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid
+                    if (uid == null) {
+                        Toast.makeText(context, "You need to sign in first", Toast.LENGTH_LONG).show()
                         return@Button
                     }
                     isLoading = true
                     CoroutineScope(Dispatchers.IO).launch {
-                        val result = repo.createGroup(groupName.trim(), currentUserId)
+                        val result = repo.createGroup(groupName.trim(), uid)
                         CoroutineScope(Dispatchers.Main).launch {
                             isLoading = false
                             result.onSuccess { group ->
                                 createdJoinCode = group.joinCode
                             }.onFailure { e ->
+                                Log.e("CreateGroup", "Firestore write failed", e)
                                 Toast.makeText(context, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
                     }
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && groupName.isNotBlank(),
                 shape = RoundedCornerShape(5.dp),
                 modifier = Modifier.width(300.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF005EBD),
+                    containerColor = if (groupName.isNotBlank()) Color(0xFF005EBD) else Color.Gray,
                     contentColor = Color.White
                 )
             ) {
@@ -141,3 +139,4 @@ fun CreateGroupScreen(
         }
     }
 }
+

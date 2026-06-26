@@ -1,5 +1,6 @@
 package com.example.splitbill.ui.group
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,7 +41,6 @@ fun JoinGroupScreen(
 ) {
     val context = LocalContext.current
     val repo = remember { GroupRepository() }
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     var joinCode by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -73,13 +73,14 @@ fun JoinGroupScreen(
                     Toast.makeText(context, "Enter a join code", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
-                if (currentUserId.isEmpty()) {
-                    Toast.makeText(context, "Not signed in", Toast.LENGTH_SHORT).show()
+                val uid = FirebaseAuth.getInstance().currentUser?.uid
+                if (uid == null) {
+                    Toast.makeText(context, "You need to sign in first", Toast.LENGTH_LONG).show()
                     return@Button
                 }
                 isLoading = true
                 CoroutineScope(Dispatchers.IO).launch {
-                    val result = repo.joinGroup(joinCode, currentUserId)
+                    val result = repo.joinGroup(joinCode, uid)
                     CoroutineScope(Dispatchers.Main).launch {
                         isLoading = false
                         result.onSuccess { joinResult ->
@@ -98,6 +99,7 @@ fun JoinGroupScreen(
                             }
                             onGroupJoined(joinResult.groupId)
                         }.onFailure { e ->
+                            Log.e("JoinGroup", "Firestore query failed", e)
                             Toast.makeText(context, e.message ?: "Join failed", Toast.LENGTH_LONG).show()
                         }
                     }

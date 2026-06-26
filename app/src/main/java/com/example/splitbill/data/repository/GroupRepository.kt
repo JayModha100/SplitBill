@@ -5,6 +5,7 @@ import com.example.splitbill.data.model.JoinGroupResult
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
 
 class GroupRepository {
 
@@ -31,9 +32,13 @@ class GroupRepository {
             val documentRef = groupsCollection.document()
             val groupToSave = newGroup.copy(groupId = documentRef.id)
 
-            documentRef.set(groupToSave).await()
+            withTimeout(10000L) {
+                documentRef.set(groupToSave).await()
+            }
 
             Result.success(groupToSave)
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -47,11 +52,13 @@ class GroupRepository {
                 return Result.failure(Exception("Join code must be exactly 6 characters."))
             }
 
-            val querySnapshot = groupsCollection
-                .whereEqualTo("joinCode", normalizedCode)
-                .limit(1)
-                .get()
-                .await()
+            val querySnapshot = withTimeout(10000L) {
+                groupsCollection
+                    .whereEqualTo("joinCode", normalizedCode)
+                    .limit(1)
+                    .get()
+                    .await()
+            }
 
             if (querySnapshot.isEmpty) {
                 return Result.failure(Exception("No group found with code \"$normalizedCode\"."))
@@ -72,7 +79,9 @@ class GroupRepository {
             }
 
             // arrayUnion is idempotent but we skip the write entirely if already a member
-            document.reference.update("members", FieldValue.arrayUnion(currentUserId)).await()
+            withTimeout(10000L) {
+                document.reference.update("members", FieldValue.arrayUnion(currentUserId)).await()
+            }
 
             Result.success(
                 JoinGroupResult(
@@ -81,6 +90,8 @@ class GroupRepository {
                     alreadyMember = false
                 )
             )
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -88,13 +99,17 @@ class GroupRepository {
 
     suspend fun getGroup(groupId: String): Result<Group> {
         return try {
-            val snapshot = groupsCollection.document(groupId).get().await()
+            val snapshot = withTimeout(10000L) {
+                groupsCollection.document(groupId).get().await()
+            }
             val group = snapshot.toObject(Group::class.java)
             if (group != null) {
                 Result.success(group)
             } else {
                 Result.failure(Exception("Group not found."))
             }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Result.failure(Exception("Database connection timed out. Please check your internet or ensure Firestore is enabled in the Firebase Console."))
         } catch (e: Exception) {
             Result.failure(e)
         }
